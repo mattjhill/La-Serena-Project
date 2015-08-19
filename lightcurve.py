@@ -1,5 +1,6 @@
 import numpy as np
 import statsmodels.api as sm
+import matplotlib.pyplot as plt
 
 class LightCurve(object):
 	""" 
@@ -38,4 +39,12 @@ class LightCurve(object):
                 residuals = z[:,1]-self.m
                 residSigma = np.std(residuals)
                 self.outlier = np.abs(residuals) > K*residSigma
-                
+
+        # plot observation
+        def plotObs(self):
+                plt.plot(self.t[self.outlier==True], self.m[self.outlier==True],
+                         'o',color='0.75',mec='none')
+                plt.plot(self.t[self.outlier==False],self.m[self.outlier==False],
+                         'ko')
+                plt.errorbar(self.t, self.m, self.merr,fmt='none',ecolor="0.8")
+                plt.savefig("lightcurve.png")
