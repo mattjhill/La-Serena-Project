@@ -33,7 +33,8 @@ class LightCurve(object):
         fname : string
             the filename of the light curve
         """
-        self.t, self.m, self.merr = np.loadtxt(fname, unpack=True)
+        self.fname = fname
+        self.t, self.m, self.merr = np.loadtxt(self.fname, unpack=True)
         self.outlier = np.repeat(False, len(self.t))
 
     def psearch(self):
@@ -47,10 +48,10 @@ class LightCurve(object):
         self.fr = self.fr[1:]
         print len(self.aov), len(self.power)
 
-        self.conv_pgram = self.power*self.aov
-        self.conv_pgram_max = max(self.conv_pgram) 
-        self.conv_fbest = self.fr[np.argmax(self.conv_pgram)]
-        self.conv_pbest = 1/self.conv_fbest
+        self.pgram = self.power*self.aov
+        self.pgram_max = max(self.pgram) 
+        self.fbest = self.fr[np.argmax(self.pgram)]
+        self.pbest = 1/self.fbest
 
         self.pbest_signif = (self.conv_pgram_max - np.median(self.conv_pgram))/np.std(self.conv_pgram)
         print("best period at {:.3f} days, {:.2f} sigma from the median".format(self.conv_pbest, self.pbest_signif))
@@ -80,10 +81,12 @@ class LightCurve(object):
         residSigma = np.std(residuals)
         self.outlier = np.abs(residuals) > threshold
 
-    def analyze(self):
+    def analyze(self, outfname):
         self.lowessClean()
         self.psearch()
-
+        outfile = open(outfname, 'a')
+        outfile.write("{} {} {}".format(self.fname, self.pbest, self.pbest_signif))
+        outfile.close()
 
     # plot observation
     def plotObs(self):
