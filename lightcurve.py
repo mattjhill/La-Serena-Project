@@ -6,66 +6,69 @@ import pyaov
 
 
 class LightCurve(object):
-	""" 
-	The CRTS light curve object 
+    """ 
+    The CRTS light curve object 
 
-	Attributes
-	----------
-	t : numpy array
-		the Modified Julian Dates, i.e. the time of observation
-	m : numpy array
-		the mesured magnitude at the time t
-	merr : numpy array
-		the photometric magnitude error for the observation
+    Attributes
+    ----------
+    t : numpy array
+        the Modified Julian Dates, i.e. the time of observation
+    m : numpy array
+        the mesured magnitude at the time t
+    merr : numpy array
+        the photometric magnitude error for the observation
 
         outlier : numpy array
                  Default value False. Set to True if the observation 
                   is outlier
-	"""
+    """
 
-	def __init__(self, fname):
-		""" 
-		The initilization function. It creates an object from
-		the actual CRTS data file.
+    def __init__(self, fname):
+        """ 
+        The initilization function. It creates an object from
+        the actual CRTS data file.
 
-		Parameters
-		----------
-		fname : string
-			the filename of the light curve
-		"""
-		self.t, self.m, self.merr = np.loadtxt(fname, unpack=True)
+        Parameters
+        ----------
+        fname : string
+            the filename of the light curve
+        """
+        self.t, self.m, self.merr = np.loadtxt(fname, unpack=True)
         self.outlier = np.repeat(False, len(self.t))
 
-	def lombscargle(self):
-		"""
-		Use gatpsy for fast computing of the Lomb-Scargle periodogram.
-		"""
-		model = LombScargleFast().fit(self.t, self.m, self.merr)
-		self.ls_periods, self.ls_power = model.periodogram_auto(nyquist_factor=200)
+    def lombscargle(self):
+        """
+        Use gatpsy for fast computing of the Lomb-Scargle periodogram.
+        """
+        model = LombScargleFast().fit(self.t, self.m, self.merr)
+        self.ls_periods, self.ls_power = model.periodogram_auto(nyquist_factor=200)
 
-	def aov(self):
-		"""
-		Compute the Analysis of Variance (AOV) periodogram. Use the same frequency grid as LS.
-		"""
-		fstop = max(1/self.ls_periods)
-		fstep = np.diff(1/self.ls_periods)[0]
-		fr0 = min(1/self.ls_periods)
-		self.aov, self.fr, self.aov_Fbest = pyaov.aovw(self.t, self.m, self.merr, fstop=fstop, fstep=fstep, fr0=fr0)
+    def aov(self):
+        """
+        Compute the Analysis of Variance (AOV) periodogram. Use the same frequency grid as LS.
+        """
+        fstop = max(1/self.ls_periods)
+        fstep = np.diff(1/self.ls_periods)[0]
+        fr0 = min(1/self.ls_periods)
+        self.aov, self.fr, self.aov_Fbest = pyaov.aovw(self.t, self.m, self.merr, fstop=fstop, fstep=fstep, fr0=fr0)
 
-	def psearch(self):
-		"""
-		Convole the two periodograms and find the Max
-		"""
+    def psearch(self):
+        """
+        Convole the two periodograms and find the Max
+        """
 
-		self.conv_pgram = self.ls_power*self.aov 
-		self.conv_fbest = self.fr[np.argmax(self.conv_pgram)]
-		self.conv_pbest = 1/self.conv_fbest
+        self.conv_pgram = self.ls_power*self.aov 
+        self.conv_fbest = self.fr[np.argmax(self.conv_pgram)]
+        self.conv_pbest = 1/self.conv_fbest
 
-	def get_pbest(self):
-		self.lombscargle()
-		self.aov()
-		self.psearch()
-		print(self.conv_pbest)
+    def get_pbest(self):
+        """ 
+        Do Lomb-Scargle and AOV period searching and print the best period found 
+        """
+        self.lombscargle()
+        self.aov()
+        self.psearch()
+        print(self.conv_pbest)
 
     def lowessClean(self, K=5):
         lowess = sm.nonparametric.lowess
