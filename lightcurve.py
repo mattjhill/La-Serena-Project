@@ -57,8 +57,9 @@ class LightCurve(object):
 
     def obs_unique(self):
         """
-        Average the observation by unique MJD
-        Both m and merr are averaged
+        Average the observation by unique MJD.
+        Both m and merr are averaged.
+        Original t, m and merr will be replaced.
         """
         t_tmp = np.floor(self.t)
         m_new = np.repeat(0.,len(np.unique(t_tmp)))
@@ -68,6 +69,7 @@ class LightCurve(object):
             m_new[j] = np.average(self.m[np.where(t_tmp == x)])
             merr_new[j] = np.sqrt(np.average(self.merr[np.where(t_tmp==x)]**2))
             j += 1
+        self.t = np.unique(t_tmp)
         self.m = m_new
         self.merr = merr_new
 
