@@ -36,40 +36,22 @@ class LightCurve(object):
         self.t, self.m, self.merr = np.loadtxt(fname, unpack=True)
         self.outlier = np.repeat(False, len(self.t))
 
-    def do_lombscargle(self):
-        """
-        Use gatpsy for fast computing of the Lomb-Scargle periodogram.
-        """
-        model = LombScargleFast().fit(self.t[~self.outlier], self.m[~self.outlier], self.merr[~self.outlier])
-        self.ls_periods, self.ls_power = model.periodogram_auto(nyquist_factor=200)
-
-    def do_aov(self):
-        """
-        Compute the Analysis of Variance (AOV) periodogram. Use the same frequency grid as LS.
-        """
-        fstop = max(1/self.ls_periods)
-        fstep = np.diff(1/self.ls_periods)[0]
-        if len(self.t) % 2 == 0:
-            fstop += fstep
-        fr0 = min(1/self.ls_periods)
-        self.aov, self.fr, self.aov_Fbest = pyaov.aovw(self.t[~self.outlier], self.m[~self.outlier], self.merr[~self.outlier], fstop=fstop, fstep=fstep, fr0=fr0)
-
     def psearch(self):
         """
         Convole the two periodograms and find the Max
         """
-        self.conv_pgram = self.ls_power*self.aov
+        model = LombScargleFast().fit(self.t, self.m, self.merr)
+        self.periods, self.power = model.periodogram_auto(nyquist_factor=200)
+        self.aov, self.fr, _ = pyaov.aovw(self.t, self.m, self.merr, fstop=max(1/self.periods), fstep=1/self.periods[0])
+        self.aov = self.aov[1:]
+        self.fr = self.fr[1:]
+        print len(self.aov), len(self.power)
+
+        self.conv_pgram = self.power*self.aov
         self.conv_pgram_max = max(self.conv_pgram) 
         self.conv_fbest = self.fr[np.argmax(self.conv_pgram)]
         self.conv_pbest = 1/self.conv_fbest
 
-    def get_pbest(self):
-        """ 
-        Do Lomb-Scargle and AOV period searching and print the best period found 
-        """
-        self.do_lombscargle()
-        self.do_aov()
-        self.psearch()
         self.pbest_signif = (self.conv_pgram_max - np.median(self.conv_pgram))/np.std(self.conv_pgram)
         print("best period at {:.3f} days, {:.2f} sigma from the median".format(self.conv_pbest, self.pbest_signif))
 
@@ -98,7 +80,7 @@ class LightCurve(object):
 
     def analyze(self):
         self.lowessClean()
-        self.get_pbest()
+        self.psearch()
 
 
     # plot observation
