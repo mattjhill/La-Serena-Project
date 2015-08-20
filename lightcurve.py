@@ -35,6 +35,7 @@ class LightCurve(object):
         """
         self.fname = fname
         self.t, self.m, self.merr = np.loadtxt(self.fname, unpack=True)
+        self.ntot = len(self.t)
         self.outlier = np.repeat(False, len(self.t))
 
     def psearch(self):
@@ -53,8 +54,8 @@ class LightCurve(object):
         self.fbest = self.fr[np.argmax(self.pgram)]
         self.pbest = 1/self.fbest
 
-        self.pbest_signif = (self.conv_pgram_max - np.median(self.conv_pgram))/np.std(self.conv_pgram)
-        print("best period at {:.3f} days, {:.2f} sigma from the median".format(self.conv_pbest, self.pbest_signif))
+        self.pbest_signif = (self.pgram_max - np.median(self.pgram))/np.std(self.pgram)
+        print("best period at {:.3f} days, {:.2f} sigma from the median".format(self.pbest, self.pbest_signif))
 
     def obs_unique(self):
         """
@@ -73,6 +74,7 @@ class LightCurve(object):
         self.t = np.unique(t_tmp)
         self.m = m_new
         self.merr = merr_new
+        self.nunique = len(self.t)
 
     def lowessClean(self, threshold=0.25):
         lowess = sm.nonparametric.lowess
@@ -85,7 +87,7 @@ class LightCurve(object):
         self.lowessClean()
         self.psearch()
         outfile = open(outfname, 'a')
-        outfile.write("{} {} {}".format(self.fname, self.pbest, self.pbest_signif))
+        outfile.write("{} {} {} {} {}".format(self.fname, self.ntot, self.nunique, (~self.outlier).sum(), self.pbest, self.pbest_signif))
         outfile.close()
 
     # plot observation
