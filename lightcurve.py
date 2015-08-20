@@ -36,28 +36,30 @@ class LightCurve(object):
         self.t, self.m, self.merr = np.loadtxt(fname, unpack=True)
         self.outlier = np.repeat(False, len(self.t))
 
-    def lombscargle(self):
+    def do_lombscargle(self):
         """
         Use gatpsy for fast computing of the Lomb-Scargle periodogram.
         """
-        model = LombScargleFast().fit(self.t, self.m, self.merr)
+        model = LombScargleFast().fit(self.t[~self.outlier], self.m[~self.outlier], self.merr[~self.outlier])
         self.ls_periods, self.ls_power = model.periodogram_auto(nyquist_factor=200)
 
-    def aov(self):
+    def do_aov(self):
         """
         Compute the Analysis of Variance (AOV) periodogram. Use the same frequency grid as LS.
         """
         fstop = max(1/self.ls_periods)
         fstep = np.diff(1/self.ls_periods)[0]
+        if len(self.t) % 2 == 0:
+            fstop += fstep
         fr0 = min(1/self.ls_periods)
-        self.aov, self.fr, self.aov_Fbest = pyaov.aovw(self.t, self.m, self.merr, fstop=fstop, fstep=fstep, fr0=fr0)
+        self.aov, self.fr, self.aov_Fbest = pyaov.aovw(self.t[~self.outlier], self.m[~self.outlier], self.merr[~self.outlier], fstop=fstop, fstep=fstep, fr0=fr0)
 
     def psearch(self):
         """
         Convole the two periodograms and find the Max
         """
-
-        self.conv_pgram = self.ls_power*self.aov 
+        self.conv_pgram = self.ls_power*self.aov
+        self.conv_pgram_max = max(self.conv_pgram) 
         self.conv_fbest = self.fr[np.argmax(self.conv_pgram)]
         self.conv_pbest = 1/self.conv_fbest
 
@@ -65,10 +67,11 @@ class LightCurve(object):
         """ 
         Do Lomb-Scargle and AOV period searching and print the best period found 
         """
-        self.lombscargle()
-        self.aov()
+        self.do_lombscargle()
+        self.do_aov()
         self.psearch()
-        print(self.conv_pbest)
+        self.pbest_signif = (self.conv_pgram_max - np.median(self.conv_pgram))/np.std(self.conv_pgram)
+        print("best period at {:.3f} days, {:.2f} sigma from the median".format(self.conv_pbest, self.pbest_signif))
 
     def lowessClean(self, K=5):
         lowess = sm.nonparametric.lowess
@@ -76,6 +79,11 @@ class LightCurve(object):
         residuals = z[:,1]-self.m
         residSigma = np.std(residuals)
         self.outlier = np.abs(residuals) > K*residSigma
+
+    def analyze(self):
+        self.lowessClean()
+        self.get_pbest()
+
 
     # plot observation
     def plotObs(self):
@@ -85,3 +93,11 @@ class LightCurve(object):
                  'ko')
         plt.errorbar(self.t, self.m, self.merr,fmt='none',ecolor="0.8")
         plt.savefig("lightcurve.png")
+
+    def plot_phase(self, period):
+        phase = self.t/period % 1
+        plt.errorbar(phase, self.m, self.merr, fmt='o')
+        plt.show()
+
+
+
