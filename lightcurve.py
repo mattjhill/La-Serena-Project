@@ -73,12 +73,28 @@ class LightCurve(object):
         self.pbest_signif = (self.conv_pgram_max - np.median(self.conv_pgram))/np.std(self.conv_pgram)
         print("best period at {:.3f} days, {:.2f} sigma from the median".format(self.conv_pbest, self.pbest_signif))
 
-    def lowessClean(self, K=5):
+    def obs_unique(self):
+        """
+        Average the observation by unique MJD
+        Both m and merr are averaged
+        """
+        t_tmp = np.floor(self.t)
+        m_new = np.repeat(0.,len(np.unique(t_tmp)))
+        merr_new = m_new.copy()
+        j = 0
+        for x in sorted(np.unique(t_tmp)):
+            m_new[j] = np.average(self.m[np.where(t_tmp == x)])
+            merr_new[j] = np.sqrt(np.average(self.merr[np.where(t_tmp==x)]**2))
+            j += 1
+        self.m = m_new
+        self.merr = merr_new
+
+    def lowessClean(self, threshold=0.25):
         lowess = sm.nonparametric.lowess
-        z = lowess(self.m, self.t,frac=0.4)
+        z = lowess(self.m, self.t,frac=0.3)
         residuals = z[:,1]-self.m
         residSigma = np.std(residuals)
-        self.outlier = np.abs(residuals) > K*residSigma
+        self.outlier = np.abs(residuals) > threshold
 
     def analyze(self):
         self.lowessClean()
