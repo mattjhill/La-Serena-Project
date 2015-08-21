@@ -1,8 +1,8 @@
 import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-#from gatspy.periodic import LombScargleFast
-#import pyaov
+from gatspy.periodic import LombScargleFast
+import pyaov
 
 
 class LightCurve(object):
@@ -64,10 +64,10 @@ class LightCurve(object):
         Original t, m and merr will be replaced.
         """
         t_tmp = np.floor(self.t)
-        m_new = np.repeat(0.,len(np.unique(t_tmp)))
+        m_new = np.repeat(0., len(np.unique(t_tmp)))
         merr_new = m_new.copy()
         j = 0
-        for x in sorted(np.unique(t_tmp)):
+        for x in np.unique(t_tmp):
             m_new[j] = np.average(self.m[np.where(t_tmp == x)])
             merr_new[j] = np.sqrt(np.average(self.merr[np.where(t_tmp==x)]**2))
             j += 1
