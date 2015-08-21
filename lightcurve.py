@@ -36,7 +36,7 @@ class LightCurve(object):
         self.fname = fname
         self.t, self.m, self.merr = np.loadtxt(self.fname, unpack=True)
         self.ntot = len(self.t)
-        self.outlier = np.repeat(False, len(self.t))
+        #self.outlier = np.repeat(False, len(self.t))
 
     def psearch(self):
         """
@@ -76,28 +76,40 @@ class LightCurve(object):
         self.merr = merr_new
         self.nunique = len(self.t)
 
-    def lowessClean(self, threshold=0.25):
+    def lowessClean(self, threshold=0.54):
+        """
+        Clean data by LOWESS local regression,
+        Obs will be removed with absolute residual
+        larger than threshold
+        """
         lowess = sm.nonparametric.lowess
-        z = lowess(self.m, self.t,frac=0.3)
-        residuals = z[:,1]-self.m
-        residSigma = np.std(residuals)
-        self.outlier = np.abs(residuals) > threshold
+        z = lowess(self.m, self.t, frac = 0.33)
+        #self.mfit = z[:,1]
+        residuals = z[:,1] -self.m
+        outlier = np.abs(residuals) > threshold
+        self.t = self.t[outlier==False]
+        self.m = self.m[outlier==False]
+        self.merr = self.merr[outlier==False]
 
     def analyze(self, outfname):
         self.lowessClean()
         self.psearch()
         outfile = open(outfname, 'a')
-        outfile.write("{} {} {} {} {}\n".format(self.fname, self.ntot, (~self.outlier).sum(), self.pbest, self.pbest_signif))
+        outfile.write("{} {} {} {} {}\n".format(self.fname, self.ntot,
+                                                (~self.outlier).sum(), self.pbest,
+                                                self.pbest_signif))
         outfile.close()
 
+
     # plot observation
-    def plotObs(self):
-        plt.plot(self.t[self.outlier==True], self.m[self.outlier==True],
-                 'o',color='0.75',mec='none')
-        plt.plot(self.t[self.outlier==False],self.m[self.outlier==False],
-                 'ko')
-        plt.errorbar(self.t, self.m, self.merr,fmt='none',ecolor="0.8")
-        plt.savefig("lightcurve.png")
+    #def plotObs(self):
+    #    plt.plot(self.t[self.outlier==True], self.m[self.outlier==True],
+    #             'o',color='0.75',mec='none')
+    #    plt.plot(self.t[self.outlier==False],self.m[self.outlier==False],
+    #             'ko')
+    #    plt.plot(self.t,self.mfit,'k-')
+    #    plt.errorbar(self.t, self.m, self.merr,fmt='none',ecolor="0.8")
+    #    plt.savefig("lightcurve.png")
 
     def plot_phase(self, period):
         phase = self.t/period % 1
