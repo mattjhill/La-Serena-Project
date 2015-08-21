@@ -1,8 +1,8 @@
 import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-from gatspy.periodic import LombScargleFast
-import pyaov
+#from gatspy.periodic import LombScargleFast
+#import pyaov
 
 
 class LightCurve(object):
@@ -83,10 +83,15 @@ class LightCurve(object):
         larger than threshold
         """
         lowess = sm.nonparametric.lowess
-        z = lowess(self.m, self.t, frac = 0.33)
-        #self.mfit = z[:,1]
-        residuals = z[:,1] -self.m
+        z = lowess(self.m, self.t, frac = 0.33,return_sorted=False)
+        residuals = z -self.m
         outlier = np.abs(residuals) > threshold
+        ## Outlier
+        self.t2 = self.t[outlier==True]
+        self.m2 = self.m[outlier==True]
+        self.merr2 = self.merr[outlier==True]
+        ## Keep
+        self.mfit = z[outlier==False]
         self.t = self.t[outlier==False]
         self.m = self.m[outlier==False]
         self.merr = self.merr[outlier==False]
@@ -102,14 +107,12 @@ class LightCurve(object):
 
 
     # plot observation
-    #def plotObs(self):
-    #    plt.plot(self.t[self.outlier==True], self.m[self.outlier==True],
-    #             'o',color='0.75',mec='none')
-    #    plt.plot(self.t[self.outlier==False],self.m[self.outlier==False],
-    #             'ko')
-    #    plt.plot(self.t,self.mfit,'k-')
-    #    plt.errorbar(self.t, self.m, self.merr,fmt='none',ecolor="0.8")
-    #    plt.savefig("lightcurve.png")
+    def plotObs(self):
+        plt.plot(self.t2, self.m2,'o',color='0.75',mec='none')
+        plt.plot(self.t,self.m,'ko')
+        plt.plot(self.t,self.mfit,'k-')
+        plt.errorbar(self.t, self.m, self.merr, fmt='none',ecolor="0.8")
+        plt.savefig("lightcurve.png")
 
     def plot_phase(self, period):
         phase = self.t/period % 1
