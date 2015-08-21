@@ -87,7 +87,7 @@ class LightCurve(object):
         self.lowessClean()
         self.psearch()
         outfile = open(outfname, 'a')
-        outfile.write("{} {} {} {} {}".format(self.fname, self.ntot, self.nunique, (~self.outlier).sum(), self.pbest, self.pbest_signif))
+        outfile.write("{} {} {} {} {}\n".format(self.fname, self.ntot, (~self.outlier).sum(), self.pbest, self.pbest_signif))
         outfile.close()
 
     # plot observation
