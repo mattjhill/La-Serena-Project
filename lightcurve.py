@@ -85,16 +85,16 @@ class LightCurve(object):
         lowess = sm.nonparametric.lowess
         z = lowess(self.m, self.t, frac = 0.33,return_sorted=False)
         residuals = z -self.m
-        outlier = np.abs(residuals) > threshold
+        self.outlier = np.abs(residuals) > threshold
         ## Outlier
-        self.t2 = self.t[outlier==True]
-        self.m2 = self.m[outlier==True]
-        self.merr2 = self.merr[outlier==True]
+        self.t2 = self.t[self.outlier==True]
+        self.m2 = self.m[self.outlier==True]
+        self.merr2 = self.merr[self.outlier==True]
         ## Keep
-        self.mfit = z[outlier==False]
-        self.t = self.t[outlier==False]
-        self.m = self.m[outlier==False]
-        self.merr = self.merr[outlier==False]
+        self.mfit = z[self.outlier==False]
+        self.t = self.t[self.outlier==False]
+        self.m = self.m[self.outlier==False]
+        self.merr = self.merr[self.outlier==False]
 
     def analyze(self, outfname):
         self.lowessClean()
